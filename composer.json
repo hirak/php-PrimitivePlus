@@ -1,0 +1,16 @@
+{
+    "name": "hiraku/php-primitive-plus",
+    "description": "primitive wrapping classes (String, Entity, Array)",
+    "repositories": [
+        {"packagist": false}
+    ],
+    "authors": [
+        {
+            "name": "Hiraku NAKANO",
+            "email": "hiraku@tojiru.net"
+        }
+    ],
+    "require": {
+
+    }
+}

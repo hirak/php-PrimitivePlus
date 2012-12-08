@@ -4,6 +4,7 @@
     "repositories": [
         {"packagist": false}
     ],
+    "keywords": ["string","array","object"],
     "authors": [
         {
             "name": "Hiraku NAKANO",
@@ -11,6 +12,9 @@
         }
     ],
     "require": {
-
+        "php": ">=5.2.10"
+    },
+    "autoload": {
+        "psr-0": {"PrimitivePlus": "src/"}
     }
 }

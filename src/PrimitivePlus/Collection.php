@@ -30,7 +30,7 @@ class Collection extends \ArrayObject
         $args = array_merge(array(&$self), $args);
 
         if (!function_exists($func)) {
-            throw new BadMethodCallException;
+            throw new \BadMethodCallException;
         }
 
         $res = call_user_func_array($func, $args);

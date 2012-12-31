@@ -1,59 +1,75 @@
 <?php
 namespace PrimitivePlus;
 
-abstract class Entity implements \IteratorAggregate, \Countable
+interface EntityInterface {
+    static function schema();
+    function errors();
+}
+
+abstract class Entity implements EntityInterface, \IteratorAggregate, \Countable
 {
     const
-        BOOLEAN  = 'boolean'
-      , INTEGER  = 'integer'
-      , DOUBLE   = 'double'
-      , STRING   = 'string'
-      , CALLABLE = 'callable'
-      , ARR      = 'array'
-      , RESOURCE = 'resource'
-      , OBJECT   = 'object'
+        BOOL = 'boolean'
+      , INT  = 'integer'
+      , DBL  = 'double'
+      , STR  = 'string'
+      , CALL = 'callable'
+      , ARR  = 'array'
+      , RES  = 'resource'
+      , OBJ  = 'object'
     ;
     private $_storage = array();
 
     private $_freezed = false;
 
-    static private $_cache = array();
+    static private $_schemaCache = array();
 
-    final function __construct(array $init=array())
+    final function __construct()
     {
         $class = get_class($this);
 
-        if (isset(self::$_cache[$class])) {
-            $schema = self::$_cache[$class];
-        } else {
-            $schema = static::getSchema();
-            if (!is_array($schema)) {
-                throw new \DomainException("$class::getSchema() must return string[].");
-            }
-            foreach ($schema as $key => $value) {
-                if (! is_string($value)) {
-                    throw new \DomainException("$class::getSchema()[$key] must be string.");
-                }
-            }
+        $schema = $this->schema();
+        if (! is_array($schema)) {
+            throw new \DomainException("$class::schema() must return array.");
         }
-
-        $default = static::getDefault();
-        if (!is_array($default)) {
-            throw new \DomainException($class'::getDefault() must return array.');
-        }
-
-        $this->_storage = $default;
 
         foreach ($schema as $key => $value) {
-            if (! array_key_exists($key, $this->_storage)) {
-                $this->_storage[$key] = null;
+            $type = gettype($value);
+            switch ($type) {
+                case self::ARR:
+                    if (!is_string($value[0])) {
+                        throw new \DomainException(
+                            "$class::schema()[$key] must be array(string [, default])."
+                        );
+                    }
+                    $schema[$key] = $value[0];
+                    $this->_storage[$key] = isset($value[1]) ? $value[1] : null;
+                    break;
+
+                case self::STR: case self::BOOL: case self::INT:
+                case self::RES: case self::DBL:
+                    $schema[$key] = $type;
+                    $this->_storage[$key] = $value;
+                    break;
+
+                case self::OBJ:
+                    $schemaclass = get_class($value);
+                    $schema[$key] = $schemaclass;
+                    $this->_storage[$key] = $value;
+                    break;
+
+                default:
+                    throw new \DomainException("$class::schema()[$key] is invalid.");
             }
         }
-
-        foreach ($init as $key => $value) {
-            $this->__set($key, $value);
+        if (!isset(self::$_schemaCache[$class])) {
+            self::$_schemaCache[$class] = $schema;
         }
+
+        call_user_func_array(array($this,'init'), func_get_args());
     }
+
+    function init() {}
 
     final function __get($label)
     {
@@ -71,23 +87,22 @@ abstract class Entity implements \IteratorAggregate, \Countable
         }
 
         $class = get_class($this);
-        $schema = self::$_cache[$class];
+        $schema = self::$_schemaCache[$class];
 
         if (! array_key_exists($label, $schema)) {
             throw new \OutOfRangeException("$class->$label is not defined.");
         }
 
-        $type = gettype($value);
         switch ($schema[$label]) {
-            case self::CALLABLE:
+            case self::CALL:
                 if (is_callable($value)) {
                     $this->_storage[$label] = $value;
                     return;
                 }
                 break;
-            case self::BOOLEAN: case self::INTEGER: case self::DOUBLE: case self::STRING:
-            case self::ARR: case self::OBJECT: case self::RESOURCE:
-                if ($type === $schema[$label]) {
+            case self::BOOL: case self::INT: case self::DBL: case self::STR:
+            case self::ARR: case self::OBJ: case self::RESOURCE:
+                if (gettype($value) === $schema[$label]) {
                     $this->_storage[$label] = $value;
                     return;
                 }
@@ -100,6 +115,24 @@ abstract class Entity implements \IteratorAggregate, \Countable
         }
 
         throw new \InvalidArgumentException("$class->$value must be {$schema[$label]}.");
+    }
+
+    final function toArray()
+    {
+        return $this->_storage;
+    }
+
+    final function fromArray(array $newData)
+    {
+        $schema = self::$_schemaCache[get_class($this)];
+
+        foreach ($newData as $key => $value) {
+            if (array_key_exists($key, $schema)) {
+                $this->__set($key, $value);
+            } else {
+                trigger_error("$key is not defined. ignored.", E_USER_NOTICE);
+            }
+        }
     }
 
     final function freeze()
@@ -117,9 +150,15 @@ abstract class Entity implements \IteratorAggregate, \Countable
         return count($this->_storage);
     }
 
-    abstract static function getSchema();
+    /**
+     * for DCI
+     */
+    final protected static function _cast(self $entity)
+    {
+        $self = new static;
+        $self->_storage =& $entity->_storage;
+        $self->_freezed =& $entity->_freezed;
 
-    abstract static function getDefault();
-
-    abstract function isValid();
+        return $self;
+    }
 }

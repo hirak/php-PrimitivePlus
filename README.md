@@ -9,27 +9,52 @@ A Class for User-Defined Type in PHP.
 
 ```php
 <?php
-class Triangle extends PrimitivePlus\Entity
+class Foo extends PrimitivePlus\Entity
 {
-    static function getSchema()
+    static function schema()
     {
         return array(
-            'a' => self::NUMBER,
-            'b' => self::NUMBER,
-            'c' => self::NUMBER,
+            'int' => 0,   // integer
+            'dbl' => 1.1, // double
+            'str' => 'some text', //string
+            'boo' => true, //boolean
         );
     }
 
-    static function getDefault()
+    function checkErrors()
     {
         return array();
     }
-
-    function isValid()
-    {
-        return true;
-    }
 }
 
-$tri = new Triangle;
+$tri = new Foo;
+
+$tri->int = 1; // success
+//$tri->int = '5'; //throw Exception
 ```
+
+### for DCI (Data, Context and Interactions)
+
+by cast() method
+
+```php
+<?php
+class User extends PrimitivePlus\Entity
+{
+    static function schema()
+    {
+        return array(
+            'name' => '',
+            'email' => 'foo@example.com',
+        );
+    }
+
+    static function cast(self $user)
+    {
+        return parent::_cast($user);
+    }
+
+    function checkErrors() { return array(); }
+}
+```
+

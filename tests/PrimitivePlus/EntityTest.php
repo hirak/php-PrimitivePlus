@@ -9,7 +9,7 @@ class User extends Entity {
         );
     }
 
-    function errors() { return array(); }
+    function checkErrors() { return array(); }
 
     static function cast(self $user) {
         return parent::_cast($user);

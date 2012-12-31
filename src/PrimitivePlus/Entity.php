@@ -1,9 +1,14 @@
 <?php
+/**
+ *
+ *
+ *
+ */
 namespace PrimitivePlus;
 
 interface EntityInterface {
     static function schema();
-    function errors();
+    function checkErrors();
 }
 
 abstract class Entity implements EntityInterface, \IteratorAggregate, \Countable
@@ -130,7 +135,7 @@ abstract class Entity implements EntityInterface, \IteratorAggregate, \Countable
             if (array_key_exists($key, $schema)) {
                 $this->__set($key, $value);
             } else {
-                trigger_error("$key is not defined. ignored.", E_USER_NOTICE);
+                trigger_error("$key is not defined. ignored.");
             }
         }
     }
